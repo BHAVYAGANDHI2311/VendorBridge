@@ -1,6 +1,5 @@
 /* ═══ Quotation Comparison — procurement staff only ═══ */
 
-const COMPARISON_ROLES = ['Admin', 'Procurement Officer', 'Manager'];
 let currentComparisonData = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -8,8 +7,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const user = Layout.getUser();
   LocalUsers.register(user);
-  if (!COMPARISON_ROLES.includes(user.role)) {
-    window.location.href = 'quotations.html';
+  if (!RoleAccess.canCompareQuotations(user.role)) {
+    Layout.mount('quotation-comparison', RoleAccess.accessDeniedHtml(
+      'Quotation comparison is not available for your role.',
+      RoleAccess.canSubmitQuotations(user.role) ? 'quotations.html' : 'dashboard.html',
+      RoleAccess.canSubmitQuotations(user.role) ? '← Go to Submit Quotations' : '← Back to Dashboard'
+    ));
+    hideLoader();
     return;
   }
 
@@ -67,8 +71,20 @@ function renderComparisonRFQPicker(rfqs, selectedId) {
   const picker = document.createElement('div');
   picker.className = 'compare-rfq-picker';
   picker.innerHTML = `
-    <div class="compare-rfq-picker__label">Select RFQ</div>
-    <select class="rfq-select" id="compare-rfq-select">${options}</select>`;
+    <div class="compare-rfq-picker__row">
+      <div>
+        <div class="compare-rfq-picker__label">Select RFQ</div>
+        <select class="rfq-select" id="compare-rfq-select">${options}</select>
+      </div>
+      <div>
+        <div class="compare-rfq-picker__label">Sort vendors by</div>
+        <select class="rfq-select" id="compare-sort-select">
+          <option value="price">Price (low to high)</option>
+          <option value="delivery">Delivery (fastest first)</option>
+          <option value="rating">Rating (high to low)</option>
+        </select>
+      </div>
+    </div>`;
 
   const container = document.getElementById('quotation-content');
   container.innerHTML = '';
@@ -84,6 +100,9 @@ function renderComparisonRFQPicker(rfqs, selectedId) {
     url.searchParams.set('rfq_id', rfqId);
     window.history.replaceState({}, '', url);
     loadComparison(rfqId);
+  });
+  document.getElementById('compare-sort-select')?.addEventListener('change', () => {
+    if (currentComparisonData) renderComparisonTable(currentComparisonData);
   });
 }
 
@@ -102,6 +121,7 @@ async function loadComparison(rfqId) {
     document.getElementById('page-subtitle').textContent =
       `RFQ: ${data.rfq_title} — ${data.quotation_count} quotation${data.quotation_count === 1 ? '' : 's'} received`;
 
+    currentComparisonData = data;
     renderComparisonTable(data);
   } catch (err) {
     area.innerHTML = `
@@ -114,13 +134,20 @@ async function loadComparison(rfqId) {
 
 function renderComparisonTable(data) {
   const area = document.getElementById('comparison-table-area');
-  const columns = data.columns || [];
+  let columns = [...(data.columns || [])];
+  const sortBy = document.getElementById('compare-sort-select')?.value || 'price';
+  columns.sort((a, b) => {
+    if (sortBy === 'delivery') return (a.values?.delivery_days ?? 999) - (b.values?.delivery_days ?? 999);
+    if (sortBy === 'rating') return (b.values?.vendor_rating ?? 0) - (a.values?.vendor_rating ?? 0);
+    return (a.values?.grand_total ?? 0) - (b.values?.grand_total ?? 0);
+  });
   const criteria = data.criteria || [];
 
   const headerCells = columns.map((col) => `
-    <th class="${col.is_lowest ? 'compare-th--lowest' : ''}" scope="col">
+    <th class="${col.is_lowest ? 'compare-th--lowest' : ''} ${col.is_fastest ? 'compare-th--fastest' : ''}" scope="col">
       ${escQ(col.vendor_name)}
       ${col.is_lowest ? '<span class="compare-lowest-badge">Lowest</span>' : ''}
+      ${col.is_fastest ? '<span class="compare-fastest-badge">Fastest</span>' : ''}
     </th>`).join('');
 
   const bodyRows = criteria.map((criterion) => `

@@ -13,6 +13,7 @@ from routes.invoice_routes import router as invoice_router
 from routes.activity_routes import router as activity_router
 from routes.approval_audit_routes import router as approval_audit_router
 from routes.reports_routes import router as reports_router
+from routes.users_routes import router as users_router
 from config import vendors_collection, activity_logs_collection
 
 app = FastAPI(
@@ -43,12 +44,16 @@ app.include_router(invoice_router, prefix="/api")
 app.include_router(activity_router, prefix="/api")
 app.include_router(approval_audit_router, prefix="/api")
 app.include_router(reports_router, prefix="/api")
+app.include_router(users_router, prefix="/api")
 
 
 @app.on_event("startup")
 async def ensure_indexes():
     from seed import seed_vendors
     from rfq_config_data import seed_rfq_reference_data
+    from seed_data import ensure_demo_users
+
+    ensure_demo_users()
     await seed_vendors()
     await seed_rfq_reference_data()
     await vendors_collection.create_index("email", unique=True)

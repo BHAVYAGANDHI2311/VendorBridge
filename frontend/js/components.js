@@ -6,8 +6,11 @@ const StatusBadge = {
   PO: {
     Approved: 'success',
     Pending: 'warning',
+    'Pending Payment': 'warning',
+    Paid: 'success',
     Draft: 'neutral',
     Rejected: 'danger',
+    Cancelled: 'danger',
     Delivered: 'info',
   },
   Invoice: {
@@ -266,16 +269,72 @@ const ErrorBoundary = {
 };
 
 const RoleAccess = {
-  canViewApprovals(role) {
-    return ['Admin', 'Manager', 'Procurement Officer'].includes(role);
-  },
-  canViewSpending(role) {
-    return ['Admin', 'Manager', 'Procurement Officer'].includes(role);
-  },
-  canCreateRFQ(role) {
+  /** Dashboard — all roles */
+  canViewDashboard() { return true; },
+
+  /** Vendors — Admin, Procurement Officer */
+  canViewVendors(role) {
     return ['Admin', 'Procurement Officer'].includes(role);
   },
   canManageVendors(role) {
+    return ['Admin', 'Procurement Officer'].includes(role);
+  },
+  canManageUsers(role) {
+    return role === 'Admin';
+  },
+
+  /** RFQs — all roles (vendors: assigned only via API) */
+  canViewRFQs() { return true; },
+  canCreateRFQ(role) {
+    return ['Admin', 'Procurement Officer'].includes(role);
+  },
+
+  /** Quotations — staff compare; vendors submit own */
+  canCompareQuotations(role) {
     return ['Admin', 'Procurement Officer', 'Manager'].includes(role);
+  },
+  canSubmitQuotations(role) {
+    return role === 'Vendor';
+  },
+
+  /** Approvals — Admin, Manager */
+  canViewApprovals(role) {
+    return ['Admin', 'Manager'].includes(role);
+  },
+
+  /** Purchase Orders — all roles (vendors: own only via API) */
+  canViewPurchaseOrders() { return true; },
+  canManagePurchaseOrders(role) {
+    return ['Admin', 'Procurement Officer', 'Manager'].includes(role);
+  },
+
+  /** Invoices — Admin, Procurement Officer, Manager */
+  canViewInvoices(role) {
+    return ['Admin', 'Procurement Officer', 'Manager'].includes(role);
+  },
+
+  /** Reports — Admin, Procurement Officer, Manager */
+  canViewReports(role) {
+    return ['Admin', 'Procurement Officer', 'Manager'].includes(role);
+  },
+
+  /** Activity & Logs — Admin, Procurement Officer, Manager */
+  canViewActivity(role) {
+    return ['Admin', 'Procurement Officer', 'Manager'].includes(role);
+  },
+
+  isVendor(role) {
+    return role === 'Vendor';
+  },
+
+  accessDeniedHtml(message, backHref = 'dashboard.html', backLabel = '← Back to Dashboard') {
+    return `
+      <div class="quotation-page">
+        <div class="quotation-empty">
+          <div class="quotation-empty__icon">🔒</div>
+          <div class="quotation-empty__text">${message}</div>
+          <a href="${backHref}" class="btn btn-primary" style="margin-top:16px">${backLabel}</a>
+        </div>
+      </div>`;
   },
 };

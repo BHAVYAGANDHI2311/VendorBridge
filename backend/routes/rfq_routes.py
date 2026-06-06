@@ -12,7 +12,7 @@ from config import (
     rfqs_collection, vendors_collection, users_collection,
     categories_collection, units_collection, UPLOAD_DIR,
 )
-from permissions import require_write_role
+from permissions import require_write_role, is_vendor_user, RFQS_STAFF
 from utils.errors import api_error
 from utils.sanitize import sanitize_text
 from rfq_config_data import get_rfq_config, seed_rfq_reference_data
@@ -115,6 +115,18 @@ async def list_units(current_user=Depends(get_current_active_user)):
     return [{"id": str(u["_id"]), "code": u["code"], "label": u["label"]} for u in units]
 
 
+async def _rfq_list_query(user: dict) -> dict:
+    """Vendors see assigned RFQs only; staff see all."""
+    if is_vendor_user(user):
+        vendor = await vendors_collection.find_one({"email": user["email"]})
+        if not vendor:
+            return {"_id": {"$exists": False}}
+        return {"assigned_vendor_ids": str(vendor["_id"])}
+    if user.get("role") in RFQS_STAFF:
+        return {}
+    return {"created_by": str(user["_id"])}
+
+
 @router.get("/rfqs")
 async def list_rfqs(
     page: int = Query(1, ge=1),
@@ -122,10 +134,9 @@ async def list_rfqs(
     status: Optional[str] = Query(None),
     current_user=Depends(get_current_active_user),
 ):
-    user_id = str(current_user["_id"])
-    query = {"created_by": user_id}
+    query = await _rfq_list_query(current_user)
     if status:
-        query["status"] = status
+        query = {**query, "status": status}
 
     total = await rfqs_collection.count_documents(query)
     skip = (page - 1) * limit
@@ -142,8 +153,16 @@ async def get_rfq(rfq_id: str, current_user=Depends(get_current_active_user)):
     doc = await rfqs_collection.find_one({"_id": ObjectId(rfq_id)})
     if not doc:
         api_error("NOT_FOUND", "RFQ not found", status_code=404)
-    if doc.get("created_by") != str(current_user["_id"]):
-        api_error("FORBIDDEN", "Access denied", status_code=403)
+
+    if is_vendor_user(current_user):
+        vendor = await vendors_collection.find_one({"email": current_user["email"]})
+        vendor_id = str(vendor["_id"]) if vendor else ""
+        if vendor_id not in (doc.get("assigned_vendor_ids") or []):
+            api_error("FORBIDDEN", "Access denied", status_code=403)
+    elif current_user.get("role") not in RFQS_STAFF:
+        if doc.get("created_by") != str(current_user["_id"]):
+            api_error("FORBIDDEN", "Access denied", status_code=403)
+
     return serialize_rfq(doc)
 
 

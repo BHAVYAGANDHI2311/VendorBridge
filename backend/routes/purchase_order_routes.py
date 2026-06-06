@@ -25,12 +25,34 @@ from services.po_service import (
     build_vendor_block,
     serialize_datetime,
 )
+from permissions import require_po_write, is_vendor_user
 from utils.errors import api_error
 
 router = APIRouter(prefix="/purchase-orders", tags=["Purchase Orders"])
 
 PO_STATUSES = ("Pending Payment", "Paid", "Cancelled")
-WRITE_ROLES = ("Admin", "Procurement Officer", "Manager")
+
+
+async def _vendor_id_for_user(user: dict) -> Optional[str]:
+    if not is_vendor_user(user):
+        return None
+    vendor = await vendors_collection.find_one({"email": user["email"]})
+    return str(vendor["_id"]) if vendor else None
+
+
+async def _po_list_query(user: dict) -> dict:
+    """Vendors see own POs only; staff see all."""
+    vendor_id = await _vendor_id_for_user(user)
+    if vendor_id:
+        return {"vendor_id": vendor_id}
+    return {}
+
+
+async def _can_access_po(user: dict, doc: dict) -> bool:
+    vendor_id = await _vendor_id_for_user(user)
+    if vendor_id:
+        return doc.get("vendor_id") == vendor_id
+    return True
 
 
 class POCreate(BaseModel):
@@ -41,11 +63,6 @@ class POCreate(BaseModel):
 
 class POStatusUpdate(BaseModel):
     status: str
-
-
-def _require_write(user: dict):
-    if user.get("role") not in WRITE_ROLES:
-        api_error("FORBIDDEN", "Access denied.", status_code=403)
 
 
 def _serialize_po_summary(doc) -> dict:
@@ -86,6 +103,7 @@ def _serialize_po_detail(doc, invoice_doc=None) -> dict:
     }
     if invoice_doc:
         data["invoice_number"] = invoice_doc.get("invoice_number", "")
+        data["email_logs"] = invoice_doc.get("email_logs", [])
     return data
 
 
@@ -95,7 +113,7 @@ async def create_purchase_order(
     current_user=Depends(get_current_active_user),
 ):
     """Create PO + invoice from an approved (selected) quotation."""
-    _require_write(current_user)
+    require_po_write(current_user)
 
     if not ObjectId.is_valid(payload.quotation_id):
         api_error("INVALID_ID", "Invalid quotation ID", field="quotation_id")
@@ -221,9 +239,7 @@ async def list_purchase_orders(
     limit: int = Query(20, ge=1, le=50),
     current_user=Depends(get_current_active_user),
 ):
-    _require_write(current_user)
-    user_id = str(current_user["_id"])
-    query = {"created_by": user_id}
+    query = await _po_list_query(current_user)
 
     total = await purchase_orders_collection.count_documents(query)
     skip = (page - 1) * limit
@@ -244,8 +260,6 @@ async def get_purchase_order(
     po_id: str,
     current_user=Depends(get_current_active_user),
 ):
-    _require_write(current_user)
-
     if not ObjectId.is_valid(po_id):
         api_error("INVALID_ID", "Invalid purchase order ID", field="id")
 
@@ -253,7 +267,7 @@ async def get_purchase_order(
     if not doc:
         api_error("NOT_FOUND", "Purchase order not found.", status_code=404)
 
-    if doc.get("created_by") != str(current_user["_id"]) and current_user.get("role") != "Admin":
+    if not await _can_access_po(current_user, doc):
         api_error("FORBIDDEN", "Access denied.", status_code=403)
 
     invoice_doc = None
@@ -273,7 +287,7 @@ async def update_po_status(
     payload: POStatusUpdate,
     current_user=Depends(get_current_active_user),
 ):
-    _require_write(current_user)
+    require_po_write(current_user)
 
     if payload.status not in PO_STATUSES:
         api_error("VALIDATION_ERROR", f"Status must be one of: {', '.join(PO_STATUSES)}", field="status")

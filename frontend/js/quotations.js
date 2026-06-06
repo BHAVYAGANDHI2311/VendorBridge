@@ -1,16 +1,11 @@
 /* ═══ Submit Quotations — vendor page (quotations.html) ═══ */
 
-const COMPARISON_ROLES = ['Admin', 'Procurement Officer', 'Manager'];
+const STAFF_COMPARE_ROLES = ['Admin', 'Procurement Officer', 'Manager'];
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!Layout.requireAuth()) return;
 
   const user = Layout.getUser();
-
-  if (COMPARISON_ROLES.includes(user.role)) {
-    window.location.href = 'quotation-comparison.html' + window.location.search;
-    return;
-  }
 
   if (user.role !== 'Vendor') {
     Layout.mount('quotations', `
@@ -18,6 +13,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="quotation-empty">
           <div class="quotation-empty__icon">🔒</div>
           <div class="quotation-empty__text">Submit Quotations is only available to vendor accounts.</div>
+          ${STAFF_COMPARE_ROLES.includes(user.role) ? `
+            <a href="quotation-comparison.html" class="btn btn-primary" style="margin-top:16px">
+              Go to Quotation Comparison →
+            </a>` : ''}
         </div>
       </div>`);
     hideLoader();
@@ -42,7 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   hideLoader();
 
   try {
-    const data = await Api.request('/quotations/rfqs');
+    const data = await Api.quotations.listRfqs();
     const rfqs = data.items || [];
 
     if (!rfqs.length) {
@@ -115,7 +114,7 @@ async function loadRFQForQuotation(rfqId) {
     </div>`;
 
   try {
-    const rfq = await Api.request(`/quotations/rfq/${rfqId}`);
+    const rfq = await Api.quotations.getRfq(rfqId);
     document.getElementById('page-subtitle').textContent =
       `RFQ: ${rfq.title} — deadline ${rfq.deadline ? formatDate(rfq.deadline) : 'N/A'}`;
 
@@ -133,15 +132,14 @@ function renderQuotationForm(rfq) {
   const formArea = document.getElementById('quotation-form-area');
   const existing = rfq.existing_quotation;
 
-  const summaryItems = (rfq.line_items || []).map((i) =>
-    `${escQ(i.item_name)} × ${i.qty}${i.unit ? ' ' + i.unit : ''}`
-  ).join(', ');
+  const lineItems = rfq.line_items || [];
+  const summaryHtml = lineItems.length
+    ? `<ul class="rfq-summary-card__list">${lineItems.map((i) =>
+        `<li>${escQ(i.item_name)} — ${i.qty}${i.unit ? ' ' + escQ(i.unit) : ''}</li>`
+      ).join('')}</ul>${rfq.category ? `<div class="rfq-summary-card__meta">Category: ${escQ(rfq.category)}</div>` : ''}`
+    : `<p class="rfq-summary-card__text">${escQ(rfq.description || 'No items specified on this RFQ. Contact procurement to update the request.')}</p>`;
 
-  const summaryText = summaryItems
-    ? `${summaryItems}${rfq.category ? ' — category ' + escQ(rfq.category) : ''}`
-    : rfq.description || 'No items specified';
-
-  const rows = (rfq.line_items || []).map((item, i) => {
+  const rows = lineItems.map((item, i) => {
     const existingItem = existing?.line_items?.[i];
     return `
       <tr>
@@ -161,10 +159,15 @@ function renderQuotationForm(rfq) {
       </tr>`;
   }).join('');
 
+  const tableBody = rows || `
+    <tr><td colspan="5" class="quotation-empty" style="padding:24px">
+      This RFQ has no line items yet. You cannot submit a quotation until items are added.
+    </td></tr>`;
+
   formArea.innerHTML = `
     <div class="rfq-summary-card">
       <div class="rfq-summary-card__label">RFQ Summary</div>
-      <div class="rfq-summary-card__text">${summaryText}</div>
+      ${summaryHtml}
     </div>
 
     <div class="quotation-form-card">
@@ -180,7 +183,7 @@ function renderQuotationForm(rfq) {
               <th>Delivery (days)</th>
             </tr>
           </thead>
-          <tbody>${rows}</tbody>
+          <tbody>${tableBody}</tbody>
         </table>
 
         <div class="quotation-bottom-row">
@@ -224,16 +227,23 @@ function renderQuotationForm(rfq) {
     </div>`;
 
   formArea._rfq = rfq;
+  const hasItems = lineItems.length > 0;
 
-  document.getElementById('quotation-table').querySelectorAll('.qt-input[data-field="unit_price"]').forEach((el) => {
-    el.addEventListener('input', () => recalculateTotals(rfq));
-  });
-  document.getElementById('qt-tax').addEventListener('input', () => recalculateTotals(rfq));
+  if (hasItems) {
+    document.getElementById('quotation-table').querySelectorAll('.qt-input[data-field="unit_price"]').forEach((el) => {
+      el.addEventListener('input', () => recalculateTotals(rfq));
+    });
+    document.getElementById('qt-tax').addEventListener('input', () => recalculateTotals(rfq));
+    recalculateTotals(rfq);
+  }
 
-  recalculateTotals(rfq);
+  const submitBtn = document.getElementById('btn-submit-quotation');
+  const draftBtn = document.getElementById('btn-save-draft');
+  submitBtn.disabled = !hasItems;
+  draftBtn.disabled = !hasItems;
 
-  document.getElementById('btn-submit-quotation').addEventListener('click', () => handleSubmit(rfq, 'submit'));
-  document.getElementById('btn-save-draft').addEventListener('click', () => handleSubmit(rfq, 'draft'));
+  submitBtn.addEventListener('click', () => handleSubmit(rfq, 'submit'));
+  draftBtn.addEventListener('click', () => handleSubmit(rfq, 'draft'));
 }
 
 function recalculateTotals(rfq) {
@@ -282,7 +292,6 @@ async function handleSubmit(rfq, mode) {
     notes: notes,
   };
 
-  const endpoint = mode === 'submit' ? '/quotations/submit' : '/quotations/draft';
   const btnId = mode === 'submit' ? 'btn-submit-quotation' : 'btn-save-draft';
   const btn = document.getElementById(btnId);
 
@@ -290,10 +299,11 @@ async function handleSubmit(rfq, mode) {
   btn.textContent = mode === 'submit' ? 'Submitting…' : 'Saving…';
 
   try {
-    await Api.request(endpoint, {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+    if (mode === 'submit') {
+      await Api.quotations.submit(payload);
+    } else {
+      await Api.quotations.saveDraft(payload);
+    }
 
     if (mode === 'submit') {
       Toast.show('Quotation Submitted', `Your quotation for "${rfq.title}" has been submitted successfully.`, 'success');

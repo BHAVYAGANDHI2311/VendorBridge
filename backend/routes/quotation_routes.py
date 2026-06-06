@@ -12,6 +12,7 @@ from config import rfqs_collection, vendors_collection, quotations_collection, a
 from utils.errors import api_error
 from utils.sanitize import sanitize_text
 from services.audit_log import write_audit_log
+from permissions import require_comparison_role as _require_comparison_role
 
 router = APIRouter(prefix="/quotations", tags=["Quotations"])
 
@@ -94,12 +95,6 @@ def _parse_payment_terms(doc) -> str:
     return doc.get("notes") or "—"
 
 
-def _require_comparison_role(user: dict):
-    role = user.get("role", "")
-    if role not in ("Admin", "Procurement Officer", "Manager"):
-        api_error("FORBIDDEN", "Only procurement staff can compare quotations.", status_code=403)
-
-
 def serialize_rfq_for_quotation(doc) -> dict:
     """Minimal RFQ data for the vendor to see and quote against."""
     status = doc.get("status", "")
@@ -145,7 +140,7 @@ async def list_quotable_rfqs(
     query = {
         "assigned_vendor_ids": vendor_id,
         "status": {"$in": ["Sent", "Open", "Received"]},
-        "line_items": {"$exists": True, "$ne": []},
+        "line_items.0": {"$exists": True},
     }
     cursor = rfqs_collection.find(query).sort("created_at", -1).limit(50)
     items = [serialize_rfq_for_quotation(doc) async for doc in cursor]
@@ -175,6 +170,13 @@ async def get_rfq_for_quotation(
     vendor_id = str(vendor["_id"])
     if vendor_id not in (doc.get("assigned_vendor_ids") or []):
         api_error("FORBIDDEN", "You are not assigned to this RFQ.", status_code=403)
+
+    if not doc.get("line_items"):
+        api_error(
+            "NO_LINE_ITEMS",
+            "This RFQ has no line items. Contact procurement to update the request.",
+            status_code=422,
+        )
 
     existing_quotation = await quotations_collection.find_one({
         "rfq_id": rfq_id,
@@ -420,24 +422,33 @@ async def get_quotation_comparison(
             vendor_map[str(vendor["_id"])] = vendor
 
     lowest_total = min(q.get("grand_total", 0) for q in quotations)
+    delivery_days_list = [_max_delivery_days(q) for q in quotations]
+    fastest_delivery = min(delivery_days_list) if delivery_days_list else 0
+
+    def _vendor_rating(vendor: dict) -> float:
+        if vendor.get("rating") is not None:
+            return float(vendor["rating"])
+        kyc = vendor.get("kyc_status", "Pending")
+        return {"Verified": 4.5, "Pending": 3.0, "Expired": 2.0}.get(kyc, 3.0)
 
     columns = []
     for q in quotations:
         vendor = vendor_map.get(q["vendor_id"], {})
-        rating = vendor.get("rating")
+        delivery = _max_delivery_days(q)
         qid = str(q["_id"])
         columns.append({
             "quotation_id": qid,
             "vendor_id": q["vendor_id"],
             "vendor_name": q.get("vendor_name", vendor.get("name", "")),
             "is_lowest": q.get("grand_total", 0) == lowest_total and q.get("status") != "Not Selected",
+            "is_fastest": delivery == fastest_delivery and delivery > 0,
             "is_selected": qid == selected_id or q.get("status") == "Selected",
             "status": q.get("status", "Submitted"),
             "values": {
                 "grand_total": q.get("grand_total", 0),
                 "tax_percent": q.get("tax_percent", 0),
-                "delivery_days": _max_delivery_days(q),
-                "vendor_rating": rating,
+                "delivery_days": delivery,
+                "vendor_rating": _vendor_rating(vendor),
                 "payment_terms": _parse_payment_terms(q),
             },
         })

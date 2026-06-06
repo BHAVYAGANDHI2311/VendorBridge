@@ -5,18 +5,13 @@ from bson import ObjectId
 
 from auth import get_current_active_user
 from config import activity_logs_collection
+from permissions import require_activity_access
 from services.audit_log import serialize_audit_log, build_type_filter
 from utils.errors import api_error
 
 router = APIRouter(prefix="/activity-logs", tags=["Activity Logs"])
 
-READ_ROLES = ("Admin", "Procurement Officer", "Manager")
 VALID_FILTERS = ("all", "rfq", "approvals", "invoices", "vendors")
-
-
-def _require_read_access(user: dict):
-    if user.get("role") not in READ_ROLES:
-        api_error("FORBIDDEN", "Access denied.", status_code=403)
 
 
 @router.get("")
@@ -27,7 +22,7 @@ async def list_activity_logs(
     current_user=Depends(get_current_active_user),
 ):
     """Fetch immutable audit trail. No edit or delete endpoints exist."""
-    _require_read_access(current_user)
+    require_activity_access(current_user)
 
     filter_key = (type or "all").lower()
     if filter_key not in VALID_FILTERS:

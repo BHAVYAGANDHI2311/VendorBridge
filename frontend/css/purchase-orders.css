@@ -33,6 +33,24 @@
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.po-toolbar-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-right: 4px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.po-toolbar-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
 }
 
 .po-card {
@@ -199,7 +217,20 @@
   font-family: var(--font-heading);
   font-size: 20px;
   font-weight: 600;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
+}
+
+.po-modal__hint {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.po-field__input[readonly] {
+  background: var(--bg-subtle, #f8fafc);
+  color: var(--text-secondary);
+  cursor: default;
 }
 
 .po-field {
@@ -281,4 +312,28 @@
   .po-meta-row {
     grid-template-columns: 1fr;
   }
+}
+
+.po-email-logs {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.po-email-logs__title {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.invoice-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 12px;
 }

@@ -6,8 +6,8 @@ const LEVELS_KEY = 'vb_approval_levels';
 const LocalUsers = {
   defaultLevels() {
     return [
-      { level: 'L1', approverRole: 'Procurement Officer', label: 'L1 Review' },
-      { level: 'L2', approverRole: 'Manager', label: 'L2 Approval' },
+      { level: 'L1', approverRole: 'Manager', label: 'L1 Manager Review' },
+      { level: 'L2', approverRole: 'Admin', label: 'L2 Admin Approval' },
     ];
   },
 

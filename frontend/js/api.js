@@ -93,7 +93,13 @@ const Api = {
     stats:    () => Api.request('/dashboard/stats'),
     rfqs:     (q) => Api.request(`/dashboard/rfqs${q ? `?q=${encodeURIComponent(q)}` : ''}`),
     orders:   (q) => Api.request(`/dashboard/purchase-orders${q ? `?q=${encodeURIComponent(q)}` : ''}`),
-    invoices: (q) => Api.request(`/dashboard/invoices${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+    invoices: (q, limit) => {
+      const params = new URLSearchParams();
+      if (q) params.set('q', q);
+      if (limit) params.set('limit', limit);
+      const qs = params.toString();
+      return Api.request(`/dashboard/invoices${qs ? `?${qs}` : ''}`);
+    },
     approvals:(q) => Api.request(`/dashboard/approvals${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   },
 
@@ -136,6 +142,30 @@ const Api = {
     },
   },
 
+  quotations: {
+    listRfqs() {
+      return Api.request('/quotations/rfqs');
+    },
+    getRfq(rfqId) {
+      return Api.request(`/quotations/rfq/${rfqId}`);
+    },
+    saveDraft(payload) {
+      return Api.request('/quotations/draft', { method: 'POST', body: JSON.stringify(payload) });
+    },
+    submit(payload) {
+      return Api.request('/quotations/submit', { method: 'POST', body: JSON.stringify(payload) });
+    },
+    compareRfqs() {
+      return Api.request('/quotations/compare/rfqs');
+    },
+    compare(rfqId) {
+      return Api.request(`/quotations/compare/${rfqId}`);
+    },
+    select(payload) {
+      return Api.request('/quotations/select', { method: 'POST', body: JSON.stringify(payload) });
+    },
+  },
+
   activityLogs: {
     list(type = 'all', { page = 1, limit = 50 } = {}) {
       return Api.request(`/activity-logs?type=${encodeURIComponent(type)}&page=${page}&limit=${limit}`);
@@ -147,6 +177,20 @@ const Api = {
       return Api.request('/approvals/audit-step', {
         method: 'POST',
         body: JSON.stringify(payload),
+      });
+    },
+  },
+
+  users: {
+    list({ page = 1, limit = 50, q = '' } = {}) {
+      const params = new URLSearchParams({ page, limit });
+      if (q) params.set('q', q);
+      return Api.request(`/users?${params}`);
+    },
+    updateStatus(id, isActive) {
+      return Api.request(`/users/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_active: isActive }),
       });
     },
   },
@@ -175,6 +219,12 @@ const Api = {
       if (month) params.set('month', month);
       if (year) params.set('year', year);
       return Api.request(`/reports/monthly-trend?${params}`);
+    },
+    vendorPerformance(month, year) {
+      const params = new URLSearchParams();
+      if (month) params.set('month', month);
+      if (year) params.set('year', year);
+      return Api.request(`/reports/vendor-performance?${params}`);
     },
     async exportCsv(month, year) {
       const token = sessionStorage.getItem('vb_token');
@@ -218,7 +268,36 @@ const Api = {
         const detail = data.detail || { message: `HTTP ${response.status}` };
         throw new ApiError(detail, response.status);
       }
-      return response.blob();
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const filename = match ? match[1] : `invoice-${id}.pdf`;
+      const contentType = response.headers.get('Content-Type') || 'application/pdf';
+      return {
+        blob: await response.blob(),
+        filename,
+        contentType,
+      };
+    },
+    async downloadAndSave(id, { sendEmail = false, invoiceNumber = '', poNumber = '' } = {}) {
+      const { blob, filename } = await Api.invoices.downloadPdf(id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      let emailResult = null;
+      if (sendEmail) {
+        const label = invoiceNumber || poNumber || id;
+        emailResult = await Api.invoices.sendEmail(id, {
+          subject: `Invoice ${label}`,
+          message: `Please find attached the invoice ${label}.`,
+        });
+      }
+      return { filename, emailResult };
     },
     sendEmail(id, payload) {
       return Api.request(`/invoices/${id}/send-email`, {

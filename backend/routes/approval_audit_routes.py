@@ -5,12 +5,10 @@ from pydantic import BaseModel, Field
 from typing import Literal
 
 from auth import get_current_active_user
+from permissions import require_approval_access
 from services.audit_log import write_audit_log
-from utils.errors import api_error
 
 router = APIRouter(prefix="/approvals", tags=["Approvals"])
-
-WRITE_ROLES = ("Admin", "Procurement Officer", "Manager")
 
 
 class ApprovalStepRecord(BaseModel):
@@ -23,18 +21,13 @@ class ApprovalStepRecord(BaseModel):
     remarks: str = ""
 
 
-def _require_write(user: dict):
-    if user.get("role") not in WRITE_ROLES:
-        api_error("FORBIDDEN", "Access denied.", status_code=403)
-
-
 @router.post("/audit-step", status_code=201)
 async def record_approval_step(
     payload: ApprovalStepRecord,
     current_user=Depends(get_current_active_user),
 ):
     """Append-only audit entry for L1/L2 approval actions."""
-    _require_write(current_user)
+    require_approval_access(current_user)
 
     verb = "approved" if payload.action == "approved" else "rejected"
     title = payload.rfq_title or "RFQ"

@@ -7,11 +7,15 @@ document.addEventListener('DOMContentLoaded', () => {
   LocalUsers.register(user);
 
   if (!RoleAccess.canViewApprovals(user.role)) {
+    const compareLink = RoleAccess.canCompareQuotations(user.role)
+      ? '<a href="quotation-comparison.html" class="btn btn-primary" style="margin-top:16px">← Go to Quotation Comparison</a>'
+      : '';
     Layout.mount('approvals', `
       <div class="approvals-page">
         <div class="approvals-empty">
           <div style="font-size:48px;margin-bottom:12px;opacity:0.5">🔒</div>
           <p>You do not have access to approvals.</p>
+          ${compareLink}
         </div>
       </div>`);
     hideLoader();

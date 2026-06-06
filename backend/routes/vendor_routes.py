@@ -10,10 +10,16 @@ from models import VendorCreate, VendorUpdate, VendorStatusUpdate, VendorStatus
 from permissions import require_write_role, can_read_all_vendors, is_vendor_user
 from utils.errors import api_error
 from utils.vendor_validation import validate_gst, validate_phone, sanitize_vendor_fields
-from seed import seed_vendors
 from services.audit_log import write_audit_log
 
 router = APIRouter(prefix="/vendors", tags=["Vendors"])
+
+
+def _vendor_rating(doc) -> float:
+    if doc.get("rating") is not None:
+        return float(doc["rating"])
+    kyc = doc.get("kyc_status", "Pending")
+    return {"Verified": 4.5, "Pending": 3.0, "Expired": 2.0}.get(kyc, 3.0)
 
 
 def serialize_vendor(doc) -> dict:
@@ -27,6 +33,7 @@ def serialize_vendor(doc) -> dict:
         "phone": doc["phone"],
         "status": doc["status"],
         "kyc_status": doc.get("kyc_status", "Pending"),
+        "rating": _vendor_rating(doc),
         "linked_user_id": doc.get("linked_user_id"),
         "created_at": doc["created_at"].isoformat() if isinstance(doc["created_at"], datetime) else doc["created_at"],
         "updated_at": doc["updated_at"].isoformat() if isinstance(doc["updated_at"], datetime) else doc["updated_at"],
@@ -66,8 +73,6 @@ async def list_vendors(
     status: Optional[str] = Query(None),
     current_user=Depends(get_current_active_user),
 ):
-    await seed_vendors()
-
     if is_vendor_user(current_user):
         vendor = await vendors_collection.find_one({"email": current_user["email"]})
         if not vendor:

@@ -9,8 +9,14 @@ let unsubscribe;
 document.addEventListener('DOMContentLoaded', async () => {
   if (!Layout.requireAuth()) return;
 
-  store = useVendors();
   const user = Layout.getUser();
+  if (!RoleAccess.canViewVendors(user.role)) {
+    Layout.mount('vendors', RoleAccess.accessDeniedHtml('You do not have permission to view vendors.'));
+    hideLoader();
+    return;
+  }
+
+  store = useVendors();
   const canWrite = WRITE_ROLES.includes(user.role);
 
   Layout.mount('vendors', buildPageShell(canWrite));

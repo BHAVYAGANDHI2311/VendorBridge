@@ -63,20 +63,24 @@ async function loadDashboard() {
   const role = user.role;
   if (typeof LocalUsers !== 'undefined') LocalUsers.register(user);
 
-  const [stats, orders, invoices] = await Promise.all([
+  const fetches = [
     Api.dashboard.stats(),
     Api.dashboard.orders(),
-    Api.dashboard.invoices(),
-  ]);
-
-  const displayUser = stats.user || user;
-  if (typeof ApprovalStore !== 'undefined') {
-    stats.pending_approvals = ApprovalStore.countPending();
+    Api.dashboard.rfqs(),
+  ];
+  if (RoleAccess.canViewInvoices(role)) {
+    fetches.push(Api.dashboard.invoices());
   }
-  renderDashboard(displayUser, stats, orders, invoices, role);
+  const results = await Promise.all(fetches);
+  const stats = results[0];
+  const orders = results[1];
+  const rfqs = results[2];
+  const invoices = RoleAccess.canViewInvoices(role) ? results[3] : [];
+
+  renderDashboard(stats.user || user, stats, orders, rfqs, invoices, role);
 }
 
-function renderDashboard(user, stats, orders, invoices, role) {
+function renderDashboard(user, stats, orders, rfqs, invoices, role) {
   const main = document.getElementById('main-content');
   if (!main) return;
 
@@ -121,14 +125,14 @@ function renderDashboard(user, stats, orders, invoices, role) {
       label: 'Total Spending (This Month)',
       trend: stats.spending_trend_pct,
       href: 'reports.html',
-      show: RoleAccess.canViewSpending(role),
+      show: RoleAccess.canViewReports(role),
     },
     {
       icon: '👥',
-      value: stats.vendor_count,
+      value: stats.vendor_count ?? 0,
       label: 'Active Vendors',
       href: 'vendors.html',
-      show: true,
+      show: RoleAccess.canViewVendors(role),
     },
   ];
 
@@ -158,16 +162,41 @@ function renderDashboard(user, stats, orders, invoices, role) {
       href: 'vendors.html?action=new',
     }));
   }
-  actions.appendChild(QuickActionButton.create({
-    label: 'View Reports',
-    variant: 'secondary',
-    href: 'reports.html',
-  }));
-  actions.appendChild(QuickActionButton.create({
-    label: 'Generate Invoice',
-    variant: 'secondary',
-    href: 'invoices.html?action=new',
-  }));
+  if (RoleAccess.canCompareQuotations(role)) {
+    actions.appendChild(QuickActionButton.create({
+      label: 'Compare Quotations',
+      variant: 'secondary',
+      href: 'quotation-comparison.html',
+    }));
+  }
+  if (RoleAccess.canSubmitQuotations(role)) {
+    actions.appendChild(QuickActionButton.create({
+      label: 'Submit Quotation',
+      variant: 'secondary',
+      href: 'quotations.html',
+    }));
+  }
+  if (RoleAccess.canViewApprovals(role)) {
+    actions.appendChild(QuickActionButton.create({
+      label: 'Pending Approvals',
+      variant: 'secondary',
+      href: 'approvals.html',
+    }));
+  }
+  if (RoleAccess.canViewReports(role)) {
+    actions.appendChild(QuickActionButton.create({
+      label: 'View Reports',
+      variant: 'secondary',
+      href: 'reports.html',
+    }));
+  }
+  if (RoleAccess.canViewInvoices(role)) {
+    actions.appendChild(QuickActionButton.create({
+      label: 'Generate Invoice',
+      variant: 'secondary',
+      href: 'purchase-orders.html',
+    }));
+  }
   main.appendChild(actions);
 
   /* Recent Purchase Orders */
@@ -206,56 +235,93 @@ function renderDashboard(user, stats, orders, invoices, role) {
   poSection.appendChild(poTable);
   main.appendChild(poSection);
 
-  /* Two-column: Invoices + Chart */
-  const grid = document.createElement('div');
-  grid.className = 'dashboard-grid-2';
-
-  const invSection = createSection('Recent Invoices', 'invoices.html');
-  const invTable = DataTable.create({
+  const rfqSection = createSection('Recent RFQs', 'rfqs.html');
+  const rfqTable = DataTable.create({
     columns: [
-      { key: 'invoice_number', label: 'Invoice#' },
-      { key: 'po_number', label: 'PO Reference' },
-      { key: 'vendor', label: 'Vendor' },
-      {
-        key: 'amount',
-        label: 'Amount',
-        render: (v) => document.createTextNode(Format.currency(v)),
-      },
+      { key: 'title', label: 'Title' },
+      { key: 'category', label: 'Category' },
       {
         key: 'status',
         label: 'Status',
-        render: (v) => StatusBadge.create(normalizeInvoiceStatus(v), 'Invoice'),
+        render: (v) => StatusBadge.create(v, 'RFQ'),
       },
       {
-        key: 'due_date',
-        label: 'Due Date',
+        key: 'deadline',
+        label: 'Deadline',
         render: (v) => document.createTextNode(Format.date(v)),
       },
     ],
-    rows: invoices,
-    searchable: true,
-    searchPlaceholder: 'Search invoices...',
-    onSearch: async (q) => {
-      const data = await Api.dashboard.invoices(q);
-      invTable.renderRows(data);
-    },
+    rows: rfqs,
+    searchable: false,
+    emptyMessage: 'No RFQs yet. Create one to start procurement.',
     onRowClick: (row) => {
-      window.location.href = `invoices.html?id=${row.id}`;
+      if (RoleAccess.isVendor(role)) {
+        window.location.href = `quotations.html?rfq_id=${row.id}`;
+      } else {
+        window.location.href = 'rfqs.html';
+      }
     },
   });
-  invSection.appendChild(invTable);
-  grid.appendChild(invSection);
+  rfqSection.appendChild(rfqTable);
+  main.appendChild(rfqSection);
 
-  const chartSection = createSection('Spending Trends — Last 6 Months');
-  const chartWrap = document.createElement('div');
-  chartWrap.className = 'chart-container';
-  chartWrap.innerHTML = '<canvas id="spending-chart" role="img" aria-label="Bar chart showing monthly procurement spending for the last 6 months"></canvas>';
-  chartSection.appendChild(chartWrap);
-  grid.appendChild(chartSection);
+  if (RoleAccess.canViewInvoices(role) || RoleAccess.canViewReports(role)) {
+    const grid = document.createElement('div');
+    grid.className = 'dashboard-grid-2';
 
-  main.appendChild(grid);
+    if (RoleAccess.canViewInvoices(role)) {
+      const invSection = createSection('Recent Invoices', 'invoices.html');
+      const invTable = DataTable.create({
+        columns: [
+          { key: 'invoice_number', label: 'Invoice#' },
+          { key: 'po_number', label: 'PO Reference' },
+          { key: 'vendor', label: 'Vendor' },
+          {
+            key: 'amount',
+            label: 'Amount',
+            render: (v) => document.createTextNode(Format.currency(v)),
+          },
+          {
+            key: 'status',
+            label: 'Status',
+            render: (v) => StatusBadge.create(normalizeInvoiceStatus(v), 'Invoice'),
+          },
+          {
+            key: 'due_date',
+            label: 'Due Date',
+            render: (v) => document.createTextNode(Format.date(v)),
+          },
+        ],
+        rows: invoices,
+        searchable: true,
+        searchPlaceholder: 'Search invoices...',
+        onSearch: async (q) => {
+          const data = await Api.dashboard.invoices(q);
+          invTable.renderRows(data);
+        },
+        onRowClick: (row) => {
+          const target = row.po_id || row.id;
+          window.location.href = `purchase-orders.html?id=${encodeURIComponent(target)}`;
+        },
+      });
+      invSection.appendChild(invTable);
+      grid.appendChild(invSection);
+    }
 
-  renderChart(stats.monthly_trend || []);
+    if (RoleAccess.canViewReports(role)) {
+      const chartSection = createSection('Spending Trends — Last 6 Months', 'reports.html');
+      const chartWrap = document.createElement('div');
+      chartWrap.className = 'chart-container';
+      chartWrap.innerHTML = '<canvas id="spending-chart" role="img" aria-label="Bar chart showing monthly procurement spending for the last 6 months"></canvas>';
+      chartSection.appendChild(chartWrap);
+      grid.appendChild(chartSection);
+    }
+
+    main.appendChild(grid);
+    if (RoleAccess.canViewReports(role)) {
+      renderChart(stats.monthly_trend || []);
+    }
+  }
 }
 
 function createSection(title, linkHref) {

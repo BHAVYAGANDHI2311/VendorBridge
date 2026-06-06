@@ -13,6 +13,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const user = Layout.getUser();
   LocalUsers.register(user);
 
+  if (!RoleAccess.canViewApprovals(user.role)) {
+    Layout.mount('approvals', RoleAccess.accessDeniedHtml(
+      'You do not have permission to access approval workflows.',
+      RoleAccess.canCompareQuotations(user.role) ? 'quotation-comparison.html' : 'dashboard.html',
+      RoleAccess.canCompareQuotations(user.role) ? '← Go to Quotations' : '← Back to Dashboard'
+    ));
+    hideLoader();
+    return;
+  }
+
   const params = new URLSearchParams(window.location.search);
   const approvalId = params.get('id');
 

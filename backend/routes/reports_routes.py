@@ -9,13 +9,14 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 
 from auth import get_current_active_user
+from permissions import require_report_access
 from services.reports_service import (
-    require_report_access,
     resolve_month_year,
     get_stats,
     get_spend_by_category,
     get_top_vendors,
     get_monthly_trend,
+    get_vendor_performance,
     build_export_rows,
     month_label,
 )
@@ -74,6 +75,20 @@ async def report_monthly_trend(
     require_report_access(current_user)
     m, y = _parse_period(month, year)
     items = await get_monthly_trend(m, y, 6)
+    return {"items": items, "month": m, "year": y}
+
+
+@router.get("/vendor-performance")
+async def report_vendor_performance(
+    month: Optional[int] = Query(None, ge=1, le=12),
+    year: Optional[int] = Query(None, ge=2000, le=2100),
+    limit: int = Query(10, ge=1, le=25),
+    current_user=Depends(get_current_active_user),
+):
+    """Vendor scorecard: spend, win rate, rating, delivery metrics."""
+    require_report_access(current_user)
+    m, y = _parse_period(month, year)
+    items = await get_vendor_performance(m, y, limit)
     return {"items": items, "month": m, "year": y}
 
 

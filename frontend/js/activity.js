@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!Layout.requireAuth()) return;
 
   const user = Layout.getUser();
-  if (!RoleAccess.canViewApprovals(user.role)) {
+  if (!RoleAccess.canViewActivity(user.role)) {
     Layout.mount('activity', `
       <div class="activity-page">
         <div class="activity-empty">

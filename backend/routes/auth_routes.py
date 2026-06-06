@@ -6,9 +6,13 @@ from auth import (
     verify_password, get_password_hash, create_access_token,
     validate_password_strength, get_current_active_user
 )
-from config import users_collection, ACCESS_TOKEN_EXPIRE_MINUTES
+from config import users_collection, vendors_collection, ACCESS_TOKEN_EXPIRE_MINUTES
+from utils.vendor_validation import validate_gst, validate_phone
+from utils.sanitize import sanitize_text
 import re
 import secrets
+
+ALLOWED_SIGNUP_ROLES = {"Admin", "Manager", "Vendor", "Procurement Officer"}
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -38,6 +42,12 @@ async def signup(user_data: UserSignup):
             detail="Email already registered"
         )
 
+    if user_data.role.value not in ALLOWED_SIGNUP_ROLES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid role selected for registration.",
+        )
+
     # Validate password strength
     if not validate_password_strength(user_data.password):
         raise HTTPException(
@@ -60,6 +70,32 @@ async def signup(user_data: UserSignup):
 
     result = await users_collection.insert_one(new_user)
     new_user["_id"] = result.inserted_id
+    user_id = str(result.inserted_id)
+
+    if user_data.role.value == "Vendor":
+        existing_vendor = await vendors_collection.find_one({"email": user_data.email.lower()})
+        if not existing_vendor:
+            try:
+                gst = validate_gst(user_data.gstin or "")
+                phone = validate_phone(user_data.phone or "+910000000000")
+            except ValueError as e:
+                await users_collection.delete_one({"_id": result.inserted_id})
+                raise HTTPException(status_code=400, detail=str(e))
+            now = datetime.utcnow()
+            await vendors_collection.insert_one({
+                "name": sanitize_text(user_data.company or user_data.full_name),
+                "category": "Other",
+                "gst_number": gst,
+                "contact_person": sanitize_text(user_data.full_name),
+                "email": user_data.email.lower(),
+                "phone": phone,
+                "status": "Pending",
+                "kyc_status": "Pending",
+                "rating": 3.0,
+                "linked_user_id": user_id,
+                "created_at": now,
+                "updated_at": now,
+            })
 
     access_token = create_access_token(
         data={"sub": user_data.email, "role": user_data.role.value},

@@ -57,7 +57,7 @@
 
 .reports-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -79,6 +79,7 @@
 }
 
 .reports-stat__value--spend { color: var(--primary); }
+.reports-stat__value--pending { color: #D97706; }
 .reports-stat__value--vendors { color: var(--success); }
 .reports-stat__value--rate { color: var(--warning); }
 .reports-stat__value--overdue { color: var(--danger); }
@@ -215,6 +216,21 @@
   text-align: center;
   padding: 24px;
   color: var(--text-muted);
+}
+
+.reports-panel--wide {
+  margin-top: 24px;
+}
+
+.reports-category-item__pct {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.reports-performance-table th,
+.reports-performance-table td {
+  white-space: nowrap;
 }
 
 @media (max-width: 1024px) {

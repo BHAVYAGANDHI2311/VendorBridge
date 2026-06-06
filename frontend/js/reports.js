@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (!Layout.requireAuth()) return;
 
   const user = Layout.getUser();
-  if (!RoleAccess.canViewSpending(user.role)) {
+  if (!RoleAccess.canViewReports(user.role)) {
     Layout.mount('reports', `
       <div class="reports-page">
         <div class="reports-empty">
@@ -76,11 +76,18 @@ function getPageHtml() {
           </section>
         </div>
       </div>
+
+      <section class="reports-panel reports-panel--wide">
+        <h2 class="reports-panel__title">Vendor Performance Analytics</h2>
+        <div id="reports-performance">
+          <div class="reports-loading">Loading…</div>
+        </div>
+      </section>
     </div>`;
 }
 
 function statSkeleton() {
-  return Array.from({ length: 4 }, () => `
+  return Array.from({ length: 5 }, () => `
     <div class="reports-stat">
       <div class="skeleton skeleton--text skeleton--lg"></div>
       <div class="skeleton skeleton--text skeleton--sm" style="margin-top:8px"></div>
@@ -122,17 +129,19 @@ function bindControls() {
 async function loadReports() {
   updateSubtitle();
 
-  const [stats, categories, vendors, trend] = await Promise.all([
+  const [stats, categories, vendors, trend, performance] = await Promise.all([
     Api.reports.stats(selectedMonth, selectedYear),
     Api.reports.spendByCategory(selectedMonth, selectedYear),
     Api.reports.topVendors(selectedMonth, selectedYear),
     Api.reports.monthlyTrend(selectedMonth, selectedYear),
+    Api.reports.vendorPerformance(selectedMonth, selectedYear),
   ]);
 
   renderStats(stats);
   renderCategories(categories.items || []);
   renderVendors(vendors.items || []);
   renderTrendChart(trend.items || []);
+  renderPerformance(performance.items || []);
 }
 
 function updateSubtitle() {
@@ -145,15 +154,19 @@ function renderStats(stats) {
   document.getElementById('reports-stats').innerHTML = `
     <div class="reports-stat">
       <div class="reports-stat__value reports-stat__value--spend">${formatCompact(stats.total_spend)}</div>
-      <div class="reports-stat__label">Total Spend</div>
+      <div class="reports-stat__label">Total Spend (Paid)</div>
     </div>
     <div class="reports-stat">
-      <div class="reports-stat__value reports-stat__value--vendors">${stats.active_vendors}</div>
-      <div class="reports-stat__label">Active Vendors</div>
+      <div class="reports-stat__value reports-stat__value--pending">${formatCompact(stats.pending_spend || 0)}</div>
+      <div class="reports-stat__label">Pending Spend</div>
+    </div>
+    <div class="reports-stat">
+      <div class="reports-stat__value reports-stat__value--vendors">${stats.total_pos ?? stats.active_vendors}</div>
+      <div class="reports-stat__label">Purchase Orders</div>
     </div>
     <div class="reports-stat">
       <div class="reports-stat__value reports-stat__value--rate">${stats.rfq_success_rate}%</div>
-      <div class="reports-stat__label">RFQ Success Rate</div>
+      <div class="reports-stat__label">RFQ Closure Rate</div>
     </div>
     <div class="reports-stat">
       <div class="reports-stat__value reports-stat__value--overdue">${stats.overdue_invoices}</div>
@@ -172,11 +185,11 @@ function renderCategories(items) {
     <div class="reports-category-item">
       <div class="reports-category-item__head">
         <span class="reports-category-item__name">${esc(item.category)}</span>
-        <span class="reports-category-item__amount">${formatInr(item.amount)}</span>
+        <span class="reports-category-item__amount">${formatInr(item.amount)} <span class="reports-category-item__pct">(${item.percentage}%)</span></span>
       </div>
       <div class="reports-category-item__bar">
         <div class="reports-category-item__fill"
-          style="width:${item.percentage}%;background:${item.color}"></div>
+          style="width:${item.bar_width ?? item.percentage}%;background:${item.color}"></div>
       </div>
     </div>`).join('');
 }
@@ -203,6 +216,42 @@ function renderVendors(items) {
             <td>${esc(v.vendor_name)}</td>
             <td>${formatInrNumber(v.spend)}</td>
             <td>${v.po_count}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderPerformance(items) {
+  const container = document.getElementById('reports-performance');
+  if (!container) return;
+  if (!items.length) {
+    container.innerHTML = '<div class="reports-empty">No vendor performance data for this month.</div>';
+    return;
+  }
+
+  container.innerHTML = `
+    <table class="reports-vendors-table reports-performance-table">
+      <thead>
+        <tr>
+          <th>Vendor</th>
+          <th>Spend (₹)</th>
+          <th>POs</th>
+          <th>Rating</th>
+          <th>Win Rate</th>
+          <th>Avg Delivery</th>
+          <th>On-Time Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${items.map((v) => `
+          <tr>
+            <td>${esc(v.vendor_name)}</td>
+            <td>${formatInrNumber(v.spend)}</td>
+            <td>${v.po_count}</td>
+            <td>${v.rating ? v.rating.toFixed(1) : '—'}</td>
+            <td>${v.quotes_submitted ? v.win_rate + '%' : '—'}</td>
+            <td>${v.avg_delivery_days ? v.avg_delivery_days + ' days' : '—'}</td>
+            <td>${v.on_time_score != null ? v.on_time_score + '%' : '—'}</td>
           </tr>`).join('')}
       </tbody>
     </table>`;
