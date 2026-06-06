@@ -19,6 +19,8 @@
 8. [User Roles & Permissions](#-user-roles--permissions)
 9. [Workflow](#-workflow)
 10. [Key Design Decisions](#-key-design-decisions)
+11. [System Architecture](#-system-architecture)
+
 
 ## ✨ About the Project
 
@@ -378,3 +380,18 @@ All endpoints are mounted under `/api`.
 - **JWT authentication** - The backend issues bearer tokens to secure API access and support session-based frontend flows.
 - **PDF generation on demand** - Invoice PDFs are produced only when requested, keeping the workflow lightweight until export time.
 - **Role-based routing** - UI navigation and API permissions are aligned so users only see and execute the actions allowed by their role.
+
+## 🏗️ System Architecture
+
+VendorBridge utilizes a decoupled client-server architecture. For detailed documentation on database design, flow diagrams, authentication sequence, and modular system breakdown, please check the [Architecture Documentation (ARCHITECTURE.md)](./ARCHITECTURE.md).
+-
+### Architecture Diagram
+
+![System Architecture](docs/architecture.png)
+
+_If the diagram does not display, add the image file at `docs/architecture.png` (recommended) or open [ARCHITECTURE.md](./ARCHITECTURE.md) for details._
+
+### High-Level Components
+- **Frontend**: Lightweight, modular Vanilla HTML5/CSS3/JS utilizing CSS variables for cohesive theme management and central state stores.
+- **Backend**: Asynchronous REST API built with FastAPI (Python), utilizing custom security middleware.
+- **Database**: MongoDB (via Motor client) storing user accounts, vendor profiles, audit logs, and transactional items.
