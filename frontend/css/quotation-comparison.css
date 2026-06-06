@@ -1,0 +1,123 @@
+/* ═══ Quotation Comparison — matches dashboard / quotations light theme ═══ */
+
+.compare-rfq-picker {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+
+.compare-rfq-picker__label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.compare-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.compare-card__body {
+  padding: 0;
+}
+
+.compare-scroll {
+  overflow-x: auto;
+}
+
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 640px;
+}
+
+.compare-table th,
+.compare-table td {
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  text-align: center;
+  vertical-align: middle;
+}
+
+.compare-table thead th {
+  background: var(--border-light);
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.compare-criteria {
+  text-align: left !important;
+  background: var(--border-light);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  width: 180px;
+  min-width: 160px;
+}
+
+.compare-th--lowest,
+.compare-td--lowest {
+  background: var(--success-bg);
+  border-color: #A7F3D0;
+}
+
+.compare-lowest-badge {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--success);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.compare-value {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.compare-value--currency {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.compare-actions-row td {
+  padding: 18px;
+  background: var(--border-light);
+}
+
+.compare-select-btn {
+  width: 100%;
+  justify-content: center;
+  min-width: 140px;
+}
+
+.compare-footnote {
+  padding: 16px 24px 20px;
+  font-size: 13px;
+  color: var(--danger);
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-card);
+}
+
+@media (max-width: 768px) {
+  .compare-table th,
+  .compare-table td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}

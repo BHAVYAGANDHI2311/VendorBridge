@@ -144,7 +144,7 @@ function renderDashboard(user, stats, orders, invoices, role) {
       label: 'New RFQ',
       variant: 'primary',
       icon: '+',
-      href: 'rfqs.html?action=new',
+      href: 'rfq-create.html',
     }));
   }
   if (RoleAccess.canManageVendors(role)) {

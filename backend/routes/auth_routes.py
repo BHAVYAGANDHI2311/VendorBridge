@@ -1,13 +1,14 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from datetime import datetime, timedelta
 from bson import ObjectId
-from models import UserSignup, UserLogin, ForgotPassword, Token
+from models import UserSignup, UserLogin, ForgotPassword, Token, ResetPassword
 from auth import (
     verify_password, get_password_hash, create_access_token,
     validate_password_strength, get_current_active_user
 )
 from config import users_collection, ACCESS_TOKEN_EXPIRE_MINUTES
 import re
+import secrets
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -110,10 +111,48 @@ async def login(user_data: UserLogin):
 @router.post("/forgot-password")
 async def forgot_password(data: ForgotPassword):
     user = await users_collection.find_one({"email": data.email})
+    if user:
+        token = secrets.token_urlsafe(32)
+        expire = datetime.utcnow() + timedelta(minutes=15)
+        await users_collection.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"reset_token": token, "reset_token_expires": expire}}
+        )
+        # Simulate sending email notifications
+        print(f"\n[EMAIL SIMULATION] Password reset request for {data.email}")
+        print(f"[EMAIL SIMULATION] Reset link: http://localhost:3000/reset-password.html?token={token}")
+        print(f"[EMAIL SIMULATION] Token: {token}\n")
     # Always return success to prevent email enumeration
     return {
         "message": "If an account with that email exists, a password reset link has been sent."
     }
+
+
+@router.post("/reset-password")
+async def reset_password(data: ResetPassword):
+    if not validate_password_strength(data.new_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters with 1 uppercase, 1 number, and 1 special character"
+        )
+    user = await users_collection.find_one({
+        "reset_token": data.token,
+        "reset_token_expires": {"$gt": datetime.utcnow()}
+    })
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+    hashed_password = get_password_hash(data.new_password)
+    await users_collection.update_one(
+        {"_id": user["_id"]},
+        {
+            "$set": {"password": hashed_password},
+            "$unset": {"reset_token": "", "reset_token_expires": ""}
+        }
+    )
+    return {"message": "Password reset successfully"}
 
 
 @router.get("/me")

@@ -119,3 +119,53 @@ class DashboardStats(BaseModel):
     savings_percentage: float
     on_time_delivery: float
     vendor_count: int
+
+
+# ─── Vendor Models ───────────────────────────────────────────────────────
+
+class VendorCategory(str, Enum):
+    CONSTRUCTION = "Construction"
+    IT = "IT"
+    LOGISTICS = "Logistics"
+    MANUFACTURING = "Manufacturing"
+    SERVICES = "Services"
+    OTHER = "Other"
+
+
+class VendorStatus(str, Enum):
+    ACTIVE = "Active"
+    PENDING = "Pending"
+    BLOCKED = "Blocked"
+
+
+class KYCStatus(str, Enum):
+    VERIFIED = "Verified"
+    PENDING = "Pending"
+    EXPIRED = "Expired"
+
+
+class VendorCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=200)
+    category: VendorCategory
+    gst_number: str = Field(..., min_length=29, max_length=29)
+    contact_person: str = Field(..., min_length=2, max_length=100)
+    email: EmailStr
+    phone: str = Field(..., min_length=10, max_length=15)
+    status: VendorStatus = VendorStatus.PENDING
+    kyc_status: KYCStatus = KYCStatus.PENDING
+
+
+class VendorUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=200)
+    category: Optional[VendorCategory] = None
+    gst_number: Optional[str] = Field(None, min_length=29, max_length=29)
+    contact_person: Optional[str] = Field(None, min_length=2, max_length=100)
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = Field(None, min_length=10, max_length=15)
+    status: Optional[VendorStatus] = None
+    kyc_status: Optional[KYCStatus] = None
+
+
+class VendorStatusUpdate(BaseModel):
+    status: VendorStatus
+

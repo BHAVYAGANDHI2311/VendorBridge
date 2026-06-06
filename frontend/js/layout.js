@@ -36,16 +36,26 @@ const Layout = {
       .slice(0, 2)
       .toUpperCase();
 
+    const comparisonRoles = ['Admin', 'Procurement Officer', 'Manager'];
+    const quotationsHref = comparisonRoles.includes(user.role)
+      ? 'quotation-comparison.html'
+      : 'quotations.html';
+
     const navHtml = NAV_ITEMS.filter((item) => {
       if (!item.roles) return true;
       return item.roles.includes(user.role);
-    }).map((item) => `
-      <a href="${item.href}" class="sidebar__link ${item.id === activePage ? 'sidebar__link--active' : ''}" ${item.id === activePage ? 'aria-current="page"' : ''}>
+    }).map((item) => {
+      const href = item.id === 'quotations' ? quotationsHref : item.href;
+      const isActive = item.id === activePage
+        || (item.id === 'quotations' && activePage === 'quotation-comparison');
+      return `
+      <a href="${href}" class="sidebar__link ${isActive ? 'sidebar__link--active' : ''}" ${isActive ? 'aria-current="page"' : ''}>
         <span class="sidebar__link-icon">${item.icon}</span>
         <span class="sidebar__link-text">${item.label}</span>
         ${item.children ? '<svg class="sidebar__chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' : ''}
       </a>
-    `).join('');
+    `;
+    }).join('');
 
     return `
       <aside class="sidebar" id="sidebar" aria-label="Main navigation">

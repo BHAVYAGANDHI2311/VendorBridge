@@ -20,3 +20,10 @@ rfqs_collection = db["rfqs"]
 purchase_orders_collection = db["purchase_orders"]
 invoices_collection = db["invoices"]
 approvals_collection = db["approvals"]
+quotations_collection = db["quotations"]
+categories_collection = db["categories"]
+units_collection = db["units"]
+app_config_collection = db["app_config"]
+
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads", "rfq")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
