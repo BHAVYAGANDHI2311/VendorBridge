@@ -7,6 +7,12 @@
 ![MongoDB](https://img.shields.io/badge/Database-MongoDB-47a248?style=for-the-badge)
 ![Python](https://img.shields.io/badge/Language-Python-3776ab?style=for-the-badge)
 
+### Architecture Diagram
+
+![System Architecture](docs/architecture.png)
+
+_If the diagram does not display, open [ARCHITECTURE.md](./ARCHITECTURE.md) or view `docs/architecture.png` in the repo._
+
 ## 📚 Table of Contents
 
 1. [About the Project](#-about-the-project)
@@ -384,12 +390,6 @@ All endpoints are mounted under `/api`.
 ## 🏗️ System Architecture
 
 VendorBridge utilizes a decoupled client-server architecture. For detailed documentation on database design, flow diagrams, authentication sequence, and modular system breakdown, please check the [Architecture Documentation (ARCHITECTURE.md)](./ARCHITECTURE.md).
--
-### Architecture Diagram
-
-![System Architecture](docs/architecture.png)
-
-_If the diagram does not display, add the image file at `docs/architecture.png` (recommended) or open [ARCHITECTURE.md](./ARCHITECTURE.md) for details._
 
 ### High-Level Components
 - **Frontend**: Lightweight, modular Vanilla HTML5/CSS3/JS utilizing CSS variables for cohesive theme management and central state stores.
