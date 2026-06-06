@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VendorBridge — Login & Signup</title>
+  <meta name="description" content="VendorBridge ERP — Centralized Procurement Management. Login or create your account." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body>
+
+<!-- Page Loader -->
+<div id="page-loader">
+  <div class="loader-spin"></div>
+  <div class="loader-brand">Vendor<em>Bridge</em></div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-wrap"></div>
+
+<!-- ══════════════════════════════════════════
+     AUTH PAGE  —  50 / 50 Split
+══════════════════════════════════════════ -->
+<div id="auth-page">
+
+  <!-- ─────────────────────────────────────
+       LEFT: Dark Hero Panel
+  ───────────────────────────────────────── -->
+  <div class="auth-hero">
+
+    <!-- Brand -->
+    <div class="hero-brand">
+      <div class="brand-mark">🔗</div>
+      <span class="brand-text">Vendor<em>Bridge</em></span>
+    </div>
+
+    <!-- Illustration -->
+    <div class="hero-illustration">
+      <img
+        src="assets/hero.png"
+        alt="VendorBridge supply chain illustration"
+        class="hero-img"
+        onerror="this.replaceWith(document.getElementById('hero-fallback').content.cloneNode(true))"
+      />
+      <template id="hero-fallback">
+        <div style="font-size:96px;opacity:0.35;animation:floatY 5s ease-in-out infinite;">🔗</div>
+      </template>
+    </div>
+
+    <!-- Copy & Stats -->
+    <div class="hero-copy">
+      <h1 class="hero-title">
+        Centralized<br/>
+        <span class="gradient-text">Procurement</span>
+      </h1>
+      <p class="hero-sub">
+        Streamline vendor relationships, RFQs, purchase orders and invoices — all in one intelligent platform.
+      </p>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────
+       RIGHT: White Form Panel
+  ───────────────────────────────────────── -->
+  <div class="auth-form-panel">
+    <div class="auth-box">
+
+      <!-- Tab Switcher (pill style, light grey bg) -->
+      <div class="tab-row" role="tablist">
+        <button
+          class="tab-btn active"
+          id="tab-login"
+          role="tab"
+          aria-selected="true"
+          onclick="switchTab('login')"
+        >Log In</button>
+        <button
+          class="tab-btn"
+          id="tab-signup"
+          role="tab"
+          aria-selected="false"
+          onclick="switchTab('signup')"
+        >Sign Up</button>
+      </div>
+
+
+      <!-- ══════════════════════════════
+           LOGIN VIEW
+      ══════════════════════════════ -->
+      <div id="view-login">
+
+        <div class="form-heading">
+          <h2 class="form-title">Welcome back</h2>
+          <p class="form-sub">Sign in to your procurement account</p>
+        </div>
+
+        <form id="login-form" class="form-stack" novalidate>
+
+          <!-- Email -->
+          <div class="field-group">
+            <label class="field-label" for="l-email">Email</label>
+            <div class="field-wrap">
+              <input
+                type="email"
+                id="l-email"
+                class="field-input"
+                placeholder="you@company.com"
+                autocomplete="email"
+              />
+            </div>
+            <span class="field-err" id="l-email-err">Please enter a valid email address</span>
+          </div>
+
+          <!-- Password -->
+          <div class="field-group">
+            <label class="field-label" for="l-password">Password</label>
+            <div class="field-wrap">
+              <input
+                type="password"
+                id="l-password"
+                class="field-input"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+              />
+              <button
+                type="button"
+                class="pwd-toggle"
+                id="l-pwd-eye"
+                onclick="toggleEye('l-password','l-pwd-eye')"
+                title="Show/hide password"
+              >👁</button>
+            </div>
+            <span class="field-err" id="l-password-err">Password is required</span>
+          </div>
+
+          <!-- Forgot Password -->
+          <div class="forgot-row">
+            <button type="button" class="link-btn" onclick="switchView('forgot')">
+              Forgot Password?
+            </button>
+          </div>
+
+          <!-- Submit -->
+          <button type="submit" class="cta-btn" id="login-cta">
+            <span id="login-cta-txt">Log In</span>
+          </button>
+
+          <p class="switch-hint">
+            Don't have an account?
+            <button type="button" class="link-btn" onclick="switchTab('signup')">Sign up</button>
+          </p>
+
+        </form>
+      </div><!-- /view-login -->
+
+
+      <!-- ══════════════════════════════
+           SIGN UP VIEW
+      ══════════════════════════════ -->
+      <div id="view-signup" class="hidden">
+
+        <div class="form-heading">
+          <h2 class="form-title">Create Account</h2>
+          <p class="form-sub">Join VendorBridge to streamline procurement</p>
+        </div>
+
+        <form id="signup-form" class="form-stack" novalidate>
+
+          <!-- Name Row -->
+          <div class="field-row-split">
+            <div class="field-group">
+              <label class="field-label" for="s-first-name">First Name</label>
+              <div class="field-wrap">
+                <input
+                  type="text"
+                  id="s-first-name"
+                  class="field-input"
+                  placeholder="John"
+                  autocomplete="given-name"
+                />
+              </div>
+              <span class="field-err" id="s-first-name-err">First name is required</span>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="s-last-name">Last Name</label>
+              <div class="field-wrap">
+                <input
+                  type="text"
+                  id="s-last-name"
+                  class="field-input"
+                  placeholder="Doe"
+                  autocomplete="family-name"
+                />
+              </div>
+              <span class="field-err" id="s-last-name-err">Last name is required</span>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="field-group">
+            <label class="field-label" for="s-email">Work Email</label>
+            <div class="field-wrap">
+              <input
+                type="email"
+                id="s-email"
+                class="field-input"
+                placeholder="you@company.com"
+                autocomplete="email"
+              />
+            </div>
+            <span class="field-err" id="s-email-err">Please enter a valid email address</span>
+          </div>
+
+          <!-- Company & GSTIN Row -->
+          <div class="field-row-split" id="company-gstin-row">
+            <div class="field-group" id="s-company-group">
+              <label class="field-label" for="s-company" id="s-company-label">
+                Company <span style="color:#CBD5E1;font-weight:400;">(optional)</span>
+              </label>
+              <div class="field-wrap">
+                <input
+                  type="text"
+                  id="s-company"
+                  class="field-input"
+                  placeholder="Acme Corp"
+                  autocomplete="organization"
+                />
+              </div>
+              <span class="field-err" id="s-company-err">Company is required</span>
+            </div>
+
+            <div class="field-group hidden" id="s-gstin-group">
+              <label class="field-label" for="s-gstin">
+                GSTIN <span style="color:#EF4444;font-weight:500;">*</span>
+              </label>
+              <div class="field-wrap">
+                <input
+                  type="text"
+                  id="s-gstin"
+                  class="field-input"
+                  placeholder="22AAAAA0000A1Z5"
+                />
+              </div>
+              <span class="field-err" id="s-gstin-err">GSTIN is required (15 characters)</span>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div class="field-group">
+            <label class="field-label" for="s-password">Password</label>
+            <div class="field-wrap">
+              <input
+                type="password"
+                id="s-password"
+                class="field-input"
+                placeholder="Min 8 chars, 1 uppercase, 1 number"
+                autocomplete="new-password"
+                oninput="checkStrength(this.value)"
+              />
+              <button
+                type="button"
+                class="pwd-toggle"
+                id="s-pwd-eye"
+                onclick="toggleEye('s-password','s-pwd-eye')"
+                title="Show/hide password"
+              >👁</button>
+            </div>
+            <!-- strength bars -->
+            <div class="strength-row">
+              <div class="s-bar" id="sb1"></div>
+              <div class="s-bar" id="sb2"></div>
+              <div class="s-bar" id="sb3"></div>
+              <div class="s-bar" id="sb4"></div>
+            </div>
+            <span class="strength-txt" id="strength-txt">Enter a strong password</span>
+            <span class="field-err" id="s-password-err">Must be 8+ chars with uppercase, number &amp; special character</span>
+          </div>
+
+          <!-- Select Role -->
+          <div class="field-group">
+            <div class="role-section-label">Select Role</div>
+            <div class="role-list" id="signup-roles">
+              <label class="role-item" data-role="Admin">
+                <input type="radio" name="s-role" value="Admin" />
+                <span class="radio-dot"></span>
+                <span class="role-item-name">Admin</span>
+              </label>
+              <label class="role-item selected" data-role="Procurement Officer">
+                <input type="radio" name="s-role" value="Procurement Officer" checked />
+                <span class="radio-dot"></span>
+                <span class="role-item-name">Procurement Officer</span>
+              </label>
+              <label class="role-item" data-role="Vendor">
+                <input type="radio" name="s-role" value="Vendor" />
+                <span class="radio-dot"></span>
+                <span class="role-item-name">Vendor</span>
+              </label>
+              <label class="role-item" data-role="Manager">
+                <input type="radio" name="s-role" value="Manager" />
+                <span class="radio-dot"></span>
+                <span class="role-item-name">Manager</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <button type="submit" class="cta-btn" id="signup-cta">
+            <span id="signup-cta-txt">Create Account</span>
+          </button>
+
+          <p class="switch-hint">
+            Already have an account?
+            <button type="button" class="link-btn" onclick="switchTab('login')">Log in</button>
+          </p>
+
+        </form>
+      </div><!-- /view-signup -->
+
+
+      <!-- ══════════════════════════════
+           FORGOT PASSWORD VIEW
+      ══════════════════════════════ -->
+      <div id="view-forgot" class="hidden">
+
+        <div class="back-row">
+          <button type="button" class="back-btn" onclick="switchView('login')">
+            ← Back to Login
+          </button>
+        </div>
+
+        <div class="form-heading">
+          <h2 class="form-title">Reset Password</h2>
+          <p class="form-sub">Enter your email and we'll send a reset link</p>
+        </div>
+
+        <!-- Form -->
+        <form id="forgot-form" class="form-stack" novalidate>
+          <div class="field-group">
+            <label class="field-label" for="f-email">Email Address</label>
+            <div class="field-wrap">
+              <input
+                type="email"
+                id="f-email"
+                class="field-input"
+                placeholder="you@company.com"
+                autocomplete="email"
+              />
+            </div>
+            <span class="field-err" id="f-email-err">Please enter a valid email address</span>
+          </div>
+
+          <button type="submit" class="cta-btn" id="forgot-cta">
+            <span id="forgot-cta-txt">Send Reset Link</span>
+          </button>
+        </form>
+
+        <!-- Success state (shown after submit) -->
+        <div id="forgot-ok" class="success-box hidden">
+          <div class="success-emoji">📬</div>
+          <div class="success-title">Check your inbox!</div>
+          <p class="success-desc">
+            A password reset link has been sent to your email address.
+          </p>
+          <button
+            type="button"
+            class="cta-btn"
+            style="margin-top:8px;"
+            onclick="switchView('login')"
+          >Back to Login</button>
+        </div>
+
+      </div><!-- /view-forgot -->
+
+    </div><!-- /auth-box -->
+  </div><!-- /auth-form-panel -->
+
+</div><!-- /auth-page -->
+
+<script src="js/api.js"></script>
+<script src="js/auth.js"></script>
+</body>
+</html>
