@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Activity &amp; Logs — VendorBridge ERP</title>
-  <meta name="description" content="Immutable procurement audit trail for VendorBridge ERP." />
+  <title>Approval Workflow — VendorBridge ERP</title>
+  <meta name="description" content="Multi-step approval workflow for vendor quotations in VendorBridge ERP." />
   <link rel="stylesheet" href="css/dashboard.css" />
-  <link rel="stylesheet" href="css/activity.css" />
+  <link rel="stylesheet" href="css/approvals.css" />
 </head>
 <body>
 <div id="page-loader" aria-live="polite">
@@ -16,7 +16,9 @@
 <div id="app"></div>
 <script src="js/api.js"></script>
 <script src="js/components.js"></script>
+<script src="js/store/localUsers.js"></script>
+<script src="js/store/approvalStore.js"></script>
 <script src="js/layout.js"></script>
-<script src="js/activity.js"></script>
+<script src="js/approval-workflow.js"></script>
 </body>
 </html>

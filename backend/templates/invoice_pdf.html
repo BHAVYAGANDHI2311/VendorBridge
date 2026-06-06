@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ invoice_number }} — VendorBridge</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; color: #0f172a; margin: 32px; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .subtitle { color: #64748b; margin-bottom: 24px; }
+    .grid { display: table; width: 100%; margin-bottom: 20px; }
+    .col { display: table-cell; width: 50%; vertical-align: top; }
+    .box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; }
+    .box h3 { font-size: 11px; text-transform: uppercase; color: #64748b; margin: 0 0 8px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { border: 1px solid #e2e8f0; padding: 8px 10px; text-align: left; }
+    th { background: #f1f5f9; font-size: 11px; text-transform: uppercase; }
+    .totals { margin-top: 16px; width: 280px; margin-left: auto; }
+    .totals td { border: none; padding: 4px 0; }
+    .grand { font-weight: bold; font-size: 14px; border-top: 2px solid #0f172a !important; }
+    .meta { margin-bottom: 16px; }
+    .meta span { margin-right: 24px; }
+  </style>
+</head>
+<body>
+  <h1>Purchase Order &amp; Invoice</h1>
+  <p class="subtitle">{{ po_number }} — {{ status }}</p>
+
+  <div class="meta">
+    <span><strong>PO Date:</strong> {{ po_date }}</span>
+    <span><strong>Invoice Date:</strong> {{ invoice_date }}</span>
+    <span><strong>Due Date:</strong> {{ due_date }}</span>
+  </div>
+
+  <div class="grid">
+    <div class="col" style="padding-right: 12px;">
+      <div class="box">
+        <h3>Bill To</h3>
+        <p><strong>{{ bill_to.organization_name }}</strong></p>
+        <p>{{ bill_to.address }}</p>
+        <p>GSTIN: {{ bill_to.gstin }}</p>
+      </div>
+    </div>
+    <div class="col" style="padding-left: 12px;">
+      <div class="box">
+        <h3>Vendor</h3>
+        <p><strong>{{ vendor.name }}</strong></p>
+        <p>{{ vendor.address }}</p>
+        <p>GSTIN: {{ vendor.gstin }}</p>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Qty</th>
+        <th>Unit Price</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in line_items %}
+      <tr>
+        <td>{{ item.item_name }}</td>
+        <td>{{ item.qty }}</td>
+        <td>₹{{ item.unit_price }}</td>
+        <td>₹{{ item.total }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr><td>Subtotal</td><td style="text-align:right">₹{{ subtotal }}</td></tr>
+    <tr><td>CGST (9%)</td><td style="text-align:right">₹{{ cgst }}</td></tr>
+    <tr><td>SGST (9%)</td><td style="text-align:right">₹{{ sgst }}</td></tr>
+    <tr class="grand"><td>Grand Total</td><td style="text-align:right">₹{{ grand_total }}</td></tr>
+  </table>
+</body>
+</html>

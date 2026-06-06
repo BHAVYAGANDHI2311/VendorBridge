@@ -3,15 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reports — VendorBridge ERP</title>
+  <title>Reports &amp; Analytics — VendorBridge ERP</title>
+  <meta name="description" content="Procurement reports, spending analysis, and vendor performance metrics." />
   <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/reports.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 </head>
-<body data-page="reports" data-title="Reports & Analytics" data-description="Generate procurement reports, spending analysis, and vendor performance metrics.">
-<div id="page-loader"><div class="loader-ring"></div><div class="loader-brand">VendorBridge</div></div>
+<body>
+<div id="page-loader" aria-live="polite">
+  <div class="loader-ring"></div>
+  <div class="loader-brand">VendorBridge</div>
+</div>
 <div id="app"></div>
 <script src="js/api.js"></script>
 <script src="js/components.js"></script>
 <script src="js/layout.js"></script>
-<script src="js/app-page.js"></script>
+<script src="js/reports.js"></script>
 </body>
 </html>

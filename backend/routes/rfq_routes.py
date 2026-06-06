@@ -9,13 +9,14 @@ import os
 
 from auth import get_current_active_user
 from config import (
-    rfqs_collection, vendors_collection,
+    rfqs_collection, vendors_collection, users_collection,
     categories_collection, units_collection, UPLOAD_DIR,
 )
 from permissions import require_write_role
 from utils.errors import api_error
 from utils.sanitize import sanitize_text
 from rfq_config_data import get_rfq_config, seed_rfq_reference_data
+from services.audit_log import write_audit_log
 
 router = APIRouter(tags=["RFQs"])
 
@@ -246,6 +247,27 @@ async def _create_rfq(data: dict, user_id: str, status: str, files: List[UploadF
         doc["attachments"] = attachments
 
     doc["_id"] = result.inserted_id
+
+    user_doc = await users_collection.find_one({"_id": ObjectId(user_id)})
+    performer = user_doc or {"_id": user_id, "full_name": "System"}
+
+    if status == config["statuses"]["DRAFT"]:
+        await write_audit_log(
+            "rfq",
+            f"RFQ created — {doc['title']}",
+            performer,
+            related_id=rfq_id,
+            action="rfq_created",
+        )
+    elif status == config["statuses"]["OPEN"]:
+        vendor_count = len(vendors)
+        await write_audit_log(
+            "rfq",
+            f"RFQ published — {doc['title']} sent to {vendor_count} vendor{'s' if vendor_count != 1 else ''}",
+            performer,
+            related_id=rfq_id,
+            action="rfq_published",
+        )
 
     # Simulate sending email notifications to all selected vendors
     if status == config["statuses"]["OPEN"]:

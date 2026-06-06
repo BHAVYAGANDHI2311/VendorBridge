@@ -1,11 +1,13 @@
 /* ═══ Quotation Comparison — procurement staff only ═══ */
 
 const COMPARISON_ROLES = ['Admin', 'Procurement Officer', 'Manager'];
+let currentComparisonData = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!Layout.requireAuth()) return;
 
   const user = Layout.getUser();
+  LocalUsers.register(user);
   if (!COMPARISON_ROLES.includes(user.role)) {
     window.location.href = 'quotations.html';
     return;
@@ -150,7 +152,11 @@ function renderComparisonTable(data) {
           <button type="button"
             class="btn ${col.is_lowest ? 'btn-primary' : 'btn-ghost'} compare-select-btn"
             data-quotation-id="${col.quotation_id}"
-            data-vendor-name="${escQ(col.vendor_name)}">
+            data-vendor-id="${col.vendor_id || ''}"
+            data-vendor-name="${escQ(col.vendor_name)}"
+            data-grand-total="${col.values?.grand_total ?? ''}"
+            data-delivery-days="${col.values?.delivery_days ?? ''}"
+            data-vendor-rating="${col.values?.vendor_rating ?? ''}">
             ${col.is_lowest ? 'Select &amp; Approve' : 'Select'}
           </button>
         </td>`;
@@ -186,6 +192,7 @@ function renderComparisonTable(data) {
 async function handleSelectVendor(rfqId, btn) {
   const quotationId = btn.dataset.quotationId;
   const vendorName = btn.dataset.vendorName;
+  const data = currentComparisonData;
 
   btn.disabled = true;
   const originalText = btn.textContent;
@@ -196,8 +203,22 @@ async function handleSelectVendor(rfqId, btn) {
       method: 'POST',
       body: JSON.stringify({ rfq_id: rfqId, quotation_id: quotationId }),
     });
-    Toast.show('Vendor Selected', `"${vendorName}" selected. Approval workflow initiated.`, 'success');
-    await loadComparison(rfqId);
+
+    const approval = ApprovalStore.createFromSelection({
+      rfqId,
+      rfqTitle: data?.rfq_title || '',
+      quotationId,
+      vendorId: btn.dataset.vendorId || '',
+      vendorName,
+      grandTotal: parseFloat(btn.dataset.grandTotal) || 0,
+      deliveryDays: parseInt(btn.dataset.deliveryDays, 10) || 0,
+      vendorRating: btn.dataset.vendorRating !== '' ? parseFloat(btn.dataset.vendorRating) : null,
+    });
+
+    Toast.show('Vendor Selected', `"${vendorName}" selected. Opening approval workflow…`, 'success');
+    setTimeout(() => {
+      window.location.href = `approval-workflow.html?id=${encodeURIComponent(approval.id)}`;
+    }, 800);
   } catch (err) {
     Toast.show('Error', ApiError.format(err), 'error');
     btn.disabled = false;

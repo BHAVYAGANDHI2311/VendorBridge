@@ -117,6 +117,116 @@ const Api = {
       return Api.request(`/vendors/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
     },
   },
+
+  purchaseOrders: {
+    list({ page = 1, limit = 20 } = {}) {
+      return Api.request(`/purchase-orders?page=${page}&limit=${limit}`);
+    },
+    get(id) {
+      return Api.request(`/purchase-orders/${id}`);
+    },
+    create(payload) {
+      return Api.request('/purchase-orders', { method: 'POST', body: JSON.stringify(payload) });
+    },
+    updateStatus(id, status) {
+      return Api.request(`/purchase-orders/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+    },
+  },
+
+  activityLogs: {
+    list(type = 'all', { page = 1, limit = 50 } = {}) {
+      return Api.request(`/activity-logs?type=${encodeURIComponent(type)}&page=${page}&limit=${limit}`);
+    },
+  },
+
+  approvals: {
+    recordStep(payload) {
+      return Api.request('/approvals/audit-step', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+  },
+
+  reports: {
+    stats(month, year) {
+      const params = new URLSearchParams();
+      if (month) params.set('month', month);
+      if (year) params.set('year', year);
+      return Api.request(`/reports/stats?${params}`);
+    },
+    spendByCategory(month, year) {
+      const params = new URLSearchParams();
+      if (month) params.set('month', month);
+      if (year) params.set('year', year);
+      return Api.request(`/reports/spend-by-category?${params}`);
+    },
+    topVendors(month, year) {
+      const params = new URLSearchParams();
+      if (month) params.set('month', month);
+      if (year) params.set('year', year);
+      return Api.request(`/reports/top-vendors?${params}`);
+    },
+    monthlyTrend(month, year) {
+      const params = new URLSearchParams();
+      if (month) params.set('month', month);
+      if (year) params.set('year', year);
+      return Api.request(`/reports/monthly-trend?${params}`);
+    },
+    async exportCsv(month, year) {
+      const token = sessionStorage.getItem('vb_token');
+      const params = new URLSearchParams();
+      if (month) params.set('month', month);
+      if (year) params.set('year', year);
+      const response = await fetch(`${API_BASE}/reports/export?${params}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const detail = data.detail || { message: `HTTP ${response.status}` };
+        throw new ApiError(detail, response.status);
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="?([^"]+)"?/);
+      const filename = match ? match[1] : `vendorbridge-report-${month}-${year}.csv`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    },
+  },
+
+  invoices: {
+    get(id) {
+      return Api.request(`/invoices/${id}`);
+    },
+    async downloadPdf(id) {
+      const token = sessionStorage.getItem('vb_token');
+      const response = await fetch(`${API_BASE}/invoices/${id}/pdf`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const detail = data.detail || { message: `HTTP ${response.status}` };
+        throw new ApiError(detail, response.status);
+      }
+      return response.blob();
+    },
+    sendEmail(id, payload) {
+      return Api.request(`/invoices/${id}/send-email`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+    },
+  },
 };
 
 const Session = {

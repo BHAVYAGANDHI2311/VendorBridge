@@ -61,6 +61,7 @@ function bindRefresh() {
 async function loadDashboard() {
   const user = Layout.getUser();
   const role = user.role;
+  if (typeof LocalUsers !== 'undefined') LocalUsers.register(user);
 
   const [stats, orders, invoices] = await Promise.all([
     Api.dashboard.stats(),
@@ -69,6 +70,9 @@ async function loadDashboard() {
   ]);
 
   const displayUser = stats.user || user;
+  if (typeof ApprovalStore !== 'undefined') {
+    stats.pending_approvals = ApprovalStore.countPending();
+  }
   renderDashboard(displayUser, stats, orders, invoices, role);
 }
 

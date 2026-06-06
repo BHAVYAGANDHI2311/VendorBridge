@@ -11,6 +11,7 @@ from permissions import require_write_role, can_read_all_vendors, is_vendor_user
 from utils.errors import api_error
 from utils.vendor_validation import validate_gst, validate_phone, sanitize_vendor_fields
 from seed import seed_vendors
+from services.audit_log import write_audit_log
 
 router = APIRouter(prefix="/vendors", tags=["Vendors"])
 
@@ -166,6 +167,16 @@ async def create_vendor(payload: VendorCreate, current_user=Depends(get_current_
 
     result = await vendors_collection.insert_one(doc)
     doc["_id"] = result.inserted_id
+
+    status_label = payload.status.value
+    await write_audit_log(
+        "vendor",
+        f"Vendor added — {payload.name} registered and {status_label.lower()}",
+        current_user,
+        related_id=str(result.inserted_id),
+        action="vendor_added",
+    )
+
     return serialize_vendor(doc)
 
 
@@ -232,6 +243,13 @@ async def update_vendor(
     await vendors_collection.update_one({"_id": ObjectId(vendor_id)}, {"$set": updates})
 
     updated = await vendors_collection.find_one({"_id": ObjectId(vendor_id)})
+    await write_audit_log(
+        "vendor",
+        f"Vendor updated — {updated.get('name', '')}",
+        current_user,
+        related_id=vendor_id,
+        action="vendor_updated",
+    )
     return serialize_vendor(updated)
 
 
@@ -257,4 +275,11 @@ async def update_vendor_status(
     )
 
     updated = await vendors_collection.find_one({"_id": ObjectId(vendor_id)})
+    await write_audit_log(
+        "vendor",
+        f"Vendor status updated — {updated.get('name', '')} set to {payload.status.value}",
+        current_user,
+        related_id=vendor_id,
+        action="vendor_updated",
+    )
     return serialize_vendor(updated)

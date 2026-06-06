@@ -11,6 +11,7 @@ from auth import get_current_active_user
 from config import rfqs_collection, vendors_collection, quotations_collection, approvals_collection
 from utils.errors import api_error
 from utils.sanitize import sanitize_text
+from services.audit_log import write_audit_log
 
 router = APIRouter(prefix="/quotations", tags=["Quotations"])
 
@@ -338,6 +339,16 @@ async def _save_quotation(payload: QuotationSubmit, user: dict, status: str):
         result = await quotations_collection.insert_one(doc)
         doc["_id"] = result.inserted_id
 
+    if status == "Submitted":
+        rfq_title = rfq.get("title", "")
+        await write_audit_log(
+            "quotation",
+            f"Quotation submitted — {vendor.get('name', '')} for {rfq_title}",
+            user,
+            related_id=str(doc["_id"]),
+            action="quotation_submitted",
+        )
+
     return serialize_quotation_for_vendor(doc, vendor_id)
 
 
@@ -502,6 +513,23 @@ async def select_quotation(
         "created_at": now,
     }
     result = await approvals_collection.insert_one(approval)
+
+    rfq_title = quotation.get("rfq_title") or rfq.get("title", "")
+    vendor_name = quotation.get("vendor_name", "Vendor")
+    await write_audit_log(
+        "quotation",
+        f"Quotation selected — {vendor_name} selected for {rfq_title}",
+        current_user,
+        related_id=quotation_id,
+        action="quotation_selected",
+    )
+    await write_audit_log(
+        "approval",
+        f"Approval initiated — {vendor_name} for {rfq_title} awaiting L1 review",
+        current_user,
+        related_id=str(result.inserted_id),
+        action="approval_pending",
+    )
 
     return {
         "message": "Vendor selected. Approval workflow initiated.",

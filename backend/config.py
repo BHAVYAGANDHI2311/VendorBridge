@@ -24,6 +24,7 @@ quotations_collection = db["quotations"]
 categories_collection = db["categories"]
 units_collection = db["units"]
 app_config_collection = db["app_config"]
+activity_logs_collection = db["activity_logs"]
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads", "rfq")
 os.makedirs(UPLOAD_DIR, exist_ok=True)

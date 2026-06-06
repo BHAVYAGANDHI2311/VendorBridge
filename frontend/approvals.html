@@ -4,14 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Approvals — VendorBridge ERP</title>
+  <meta name="description" content="Review and action pending quotation approvals in VendorBridge ERP." />
   <link rel="stylesheet" href="css/dashboard.css" />
+  <link rel="stylesheet" href="css/approvals.css" />
 </head>
-<body data-page="approvals" data-title="Approvals" data-description="Review and action pending purchase orders, invoices, and vendor registrations.">
-<div id="page-loader"><div class="loader-ring"></div><div class="loader-brand">VendorBridge</div></div>
+<body>
+<div id="page-loader" aria-live="polite">
+  <div class="loader-ring"></div>
+  <div class="loader-brand">VendorBridge</div>
+</div>
 <div id="app"></div>
 <script src="js/api.js"></script>
 <script src="js/components.js"></script>
+<script src="js/store/localUsers.js"></script>
+<script src="js/store/approvalStore.js"></script>
 <script src="js/layout.js"></script>
-<script src="js/app-page.js"></script>
+<script src="js/approvals.js"></script>
 </body>
 </html>

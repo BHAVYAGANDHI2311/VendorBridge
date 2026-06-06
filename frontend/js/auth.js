@@ -207,6 +207,7 @@ async function handleLogin(e) {
   try {
     const res = await Api.auth.login({ email, password });
     Session.save(res.access_token, res.user);
+    if (typeof LocalUsers !== 'undefined') LocalUsers.register(res.user);
     toast('success', 'Login successful', `Welcome back, ${res.user.full_name}!`);
     setTimeout(() => { window.location.href = 'dashboard.html'; }, 900);
   } catch (err) {
@@ -267,6 +268,7 @@ async function handleSignup(e) {
 
     const res = await Api.auth.signup(payload);
     Session.save(res.access_token, res.user);
+    if (typeof LocalUsers !== 'undefined') LocalUsers.register(res.user);
     toast('success', 'Account created!', `Welcome to VendorBridge, ${res.user.full_name}!`);
     setTimeout(() => { window.location.href = 'dashboard.html'; }, 900);
   } catch (err) {

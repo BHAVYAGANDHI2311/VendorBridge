@@ -21,6 +21,8 @@ def serialize_user(user: dict) -> dict:
         "role": user["role"],
         "company": user.get("company"),
         "gstin": user.get("gstin"),
+        "address": user.get("address", ""),
+        "phone": user.get("phone", ""),
         "is_active": user.get("is_active", True),
         "created_at": user.get("created_at", datetime.utcnow()).isoformat(),
     }

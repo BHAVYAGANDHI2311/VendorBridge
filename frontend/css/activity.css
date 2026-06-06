@@ -1,0 +1,142 @@
+/* ═══ Activity & Logs — light theme timeline ═══ */
+
+.activity-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+.activity-page__header {
+  margin-bottom: 20px;
+}
+
+.activity-page__title {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.activity-page__subtitle {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+
+.activity-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.activity-filter {
+  padding: 8px 18px;
+  border-radius: 100px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-card);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: var(--font-sans);
+}
+
+.activity-filter:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.activity-filter--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.activity-timeline {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.activity-item {
+  display: flex;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-light);
+  align-items: flex-start;
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-item__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.activity-item__icon--rfq {
+  background: var(--info-bg);
+  color: #4338CA;
+}
+
+.activity-item__icon--quotation {
+  background: var(--success-bg);
+  color: #047857;
+}
+
+.activity-item__icon--approval {
+  background: var(--warning-bg);
+  color: #B45309;
+}
+
+.activity-item__icon--invoice {
+  background: var(--primary-50);
+  color: var(--primary);
+}
+
+.activity-item__icon--vendor {
+  background: #FCE7F3;
+  color: #BE185D;
+}
+
+.activity-item__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-item__message {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.activity-item__meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.activity-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+}
+
+.activity-loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--text-muted);
+}
